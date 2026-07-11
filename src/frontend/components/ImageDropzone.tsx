@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { UploadCloud, Camera, Sparkles } from "lucide-react";
+import { useI18n } from "../i18n";
 
 interface Props {
   onImage: (file: File) => void;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function ImageDropzone({ onImage, onSample }: Props) {
+  const { t } = useI18n();
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -42,23 +44,21 @@ export function ImageDropzone({ onImage, onSample }: Props) {
       <span className="dropzone-icon">
         <UploadCloud size={30} strokeWidth={1.7} />
       </span>
-      <h2 className="dropzone-title">Drop a chamber photo here</h2>
-      <p className="dropzone-sub muted">
-        Upload an image from a digital microscope or capture one from your camera.
-      </p>
+      <h2 className="dropzone-title">{t("dropzone.title")}</h2>
+      <p className="dropzone-sub muted">{t("dropzone.sub")}</p>
 
       <div className="dropzone-actions">
         <button className="btn btn-primary" onClick={() => fileInput.current?.click()}>
           <UploadCloud size={16} />
-          Upload image
+          {t("dropzone.upload")}
         </button>
         <button className="btn btn-ghost" onClick={() => cameraInput.current?.click()}>
           <Camera size={16} />
-          Use camera
+          {t("dropzone.camera")}
         </button>
         <button className="btn btn-ghost" onClick={onSample}>
           <Sparkles size={16} />
-          Try a sample
+          {t("dropzone.sample")}
         </button>
       </div>
 

@@ -8,8 +8,10 @@ import {
   type AnalysisRecord,
 } from "../../backend/analyses";
 import { formatScientific } from "../lib/math";
+import { useI18n } from "../i18n";
 
 export default function HistoryPage() {
+  const { t } = useI18n();
   const [records, setRecords] = useState<AnalysisRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,24 +44,24 @@ export default function HistoryPage() {
       <main className="app-main container">
         <div className="history-head">
           <div>
-            <span className="eyebrow">History</span>
-            <h1 className="app-title">Saved analyses</h1>
+            <span className="eyebrow">{t("history.eyebrow")}</span>
+            <h1 className="app-title">{t("history.title")}</h1>
           </div>
           <Link to="/app" className="btn btn-primary btn-sm">
-            New analysis
+            {t("history.new")}
             <ArrowRight size={15} />
           </Link>
         </div>
 
         {loading ? (
-          <div className="empty-state mono muted">Loading</div>
+          <div className="empty-state mono muted">{t("history.loading")}</div>
         ) : error ? (
           <div className="notice notice-error">{error}</div>
         ) : records.length === 0 ? (
           <div className="empty-state">
-            <p className="muted">No analyses saved yet.</p>
+            <p className="muted">{t("history.empty")}</p>
             <Link to="/app" className="link">
-              Run your first count
+              {t("history.runFirst")}
             </Link>
           </div>
         ) : (
@@ -68,11 +70,11 @@ export default function HistoryPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Live</th>
-                    <th>Dead</th>
-                    <th>Viability</th>
-                    <th>Concentration</th>
+                    <th>{t("history.date")}</th>
+                    <th>{t("history.live")}</th>
+                    <th>{t("history.dead")}</th>
+                    <th>{t("history.viability")}</th>
+                    <th>{t("history.concentration")}</th>
                     <th aria-label="Actions" />
                   </tr>
                 </thead>
@@ -93,7 +95,7 @@ export default function HistoryPage() {
                         <td className="table-action">
                           <button
                             className="icon-btn"
-                            aria-label="Delete analysis"
+                            aria-label={t("history.deleteAria")}
                             onClick={() => handleDelete(record.id)}
                           >
                             <Trash2 size={16} />

@@ -3,9 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../backend/auth";
 import { Header } from "../../shared/Header";
 import { Button, Field, Input } from "../../shared/ui";
+import { useI18n } from "../i18n";
 
 export default function SignupPage() {
   const { signUp, configured } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -20,7 +22,7 @@ export default function SignupPage() {
     setMessage(null);
 
     if (password.length < 6) {
-      setError("Password must be at least six characters.");
+      setError(t("auth.pwTooShort"));
       return;
     }
 
@@ -32,7 +34,7 @@ export default function SignupPage() {
       setError(signUpError);
       return;
     }
-    setMessage("Account created. Check your inbox if email confirmation is on, then sign in.");
+    setMessage(t("auth.created"));
     setTimeout(() => navigate("/login"), 1200);
   };
 
@@ -41,18 +43,13 @@ export default function SignupPage() {
       <Header />
       <main className="auth-shell">
         <div className="auth-card card">
-          <h1 className="auth-title">Create account</h1>
-          <p className="auth-sub muted">Save your analyses and revisit them anytime.</p>
+          <h1 className="auth-title">{t("auth.signupTitle")}</h1>
+          <p className="auth-sub muted">{t("auth.signupSub")}</p>
 
-          {!configured ? (
-            <div className="notice">
-              Accounts are not enabled in this build. Add your Supabase keys to a .env file
-              to turn on sign up and saved history. The analyzer works without an account.
-            </div>
-          ) : null}
+          {!configured ? <div className="notice">{t("auth.notConfigured")}</div> : null}
 
           <form className="auth-form" onSubmit={handleSubmit}>
-            <Field label="Email" htmlFor="email">
+            <Field label={t("auth.email")} htmlFor="email">
               <Input
                 id="email"
                 type="email"
@@ -63,7 +60,7 @@ export default function SignupPage() {
                 disabled={!configured || busy}
               />
             </Field>
-            <Field label="Password" htmlFor="password" hint="At least six characters.">
+            <Field label={t("auth.password")} htmlFor="password" hint={t("auth.passwordHint")}>
               <Input
                 id="password"
                 type="password"
@@ -79,12 +76,15 @@ export default function SignupPage() {
             {message ? <div className="notice notice-ok">{message}</div> : null}
 
             <Button type="submit" className="btn-block" disabled={!configured || busy}>
-              {busy ? "Creating account" : "Create account"}
+              {busy ? t("auth.creatingAccount") : t("auth.createAccount")}
             </Button>
           </form>
 
           <p className="auth-alt muted">
-            Already have an account? <Link to="/login" className="link">Sign in</Link>
+            {t("auth.haveAccount")}{" "}
+            <Link to="/login" className="link">
+              {t("auth.signin")}
+            </Link>
           </p>
         </div>
       </main>

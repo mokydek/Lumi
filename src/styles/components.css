@@ -95,6 +95,41 @@
   white-space: nowrap;
 }
 
+.lang-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.lang-btn {
+  padding: 6px 10px;
+  border: 0;
+  background: var(--bg);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.lang-btn + .lang-btn {
+  border-left: 1px solid var(--border-strong);
+}
+
+.lang-btn:hover {
+  color: var(--fg);
+}
+
+.lang-active {
+  background: var(--fg);
+  color: #ffffff;
+}
+
+.lang-active:hover {
+  color: #ffffff;
+}
+
 /* Footer */
 .site-footer {
   margin-top: auto;

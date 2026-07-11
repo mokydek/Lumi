@@ -1,6 +1,7 @@
 import { CirclePlus, CircleDot, Eraser, Crop, RotateCcw, ImagePlus } from "lucide-react";
 import type { DetectParams } from "../lib/counting";
 import { Field, Input } from "../../shared/ui";
+import { useI18n } from "../i18n";
 import type { Tool } from "../pages/AnalyzerPage";
 
 interface Props {
@@ -18,11 +19,11 @@ interface Props {
   onNewImage: () => void;
 }
 
-const tools: { id: Tool; label: string; icon: typeof CirclePlus }[] = [
-  { id: "live", label: "Live", icon: CirclePlus },
-  { id: "dead", label: "Dead", icon: CircleDot },
-  { id: "erase", label: "Erase", icon: Eraser },
-  { id: "region", label: "Region", icon: Crop },
+const toolMeta: { id: Tool; icon: typeof CirclePlus; labelKey: string }[] = [
+  { id: "live", icon: CirclePlus, labelKey: "controls.live" },
+  { id: "dead", icon: CircleDot, labelKey: "controls.dead" },
+  { id: "erase", icon: Eraser, labelKey: "controls.erase" },
+  { id: "region", icon: Crop, labelKey: "controls.region" },
 ];
 
 export function Controls({
@@ -39,40 +40,38 @@ export function Controls({
   onClear,
   onNewImage,
 }: Props) {
+  const { t } = useI18n();
   const update = (patch: Partial<DetectParams>) => onParamsChange({ ...params, ...patch });
 
   return (
     <div className="controls">
       <div className="control-block">
-        <span className="control-heading">Marker tool</span>
-        <div className="seg" role="tablist" aria-label="Marker tool">
-          {tools.map((t) => (
+        <span className="control-heading">{t("controls.tool")}</span>
+        <div className="seg" role="tablist" aria-label={t("controls.tool")}>
+          {toolMeta.map((meta) => (
             <button
-              key={t.id}
+              key={meta.id}
               role="tab"
-              aria-selected={tool === t.id}
-              className={`seg-btn ${tool === t.id ? "seg-active" : ""}`.trim()}
-              onClick={() => onToolChange(t.id)}
+              aria-selected={tool === meta.id}
+              className={`seg-btn ${tool === meta.id ? "seg-active" : ""}`.trim()}
+              onClick={() => onToolChange(meta.id)}
             >
-              <t.icon size={15} />
-              {t.label}
+              <meta.icon size={15} />
+              {t(meta.labelKey)}
             </button>
           ))}
         </div>
-        <p className="control-hint">
-          Click the image to add a marker, Erase to remove one, or Region to drag a box
-          that limits automatic detection. Shortcuts L, D, E, R.
-        </p>
+        <p className="control-hint">{t("controls.toolHint")}</p>
       </div>
 
       <hr className="divider" />
 
       <div className="control-block">
-        <span className="control-heading">Detection sensitivity</span>
+        <span className="control-heading">{t("controls.sensitivity")}</span>
 
         <label className="slider">
           <span className="slider-label">
-            Blue strength
+            {t("controls.blueStrength")}
             <span className="mono">{params.blueThreshold}</span>
           </span>
           <input
@@ -86,7 +85,7 @@ export function Controls({
 
         <label className="slider">
           <span className="slider-label">
-            Live sensitivity
+            {t("controls.liveSensitivity")}
             <span className="mono">{params.liveSensitivity}</span>
           </span>
           <input
@@ -100,7 +99,7 @@ export function Controls({
 
         <label className="slider">
           <span className="slider-label">
-            Min cell size
+            {t("controls.minSize")}
             <span className="mono">{params.minArea}</span>
           </span>
           <input
@@ -114,7 +113,7 @@ export function Controls({
 
         <label className="slider">
           <span className="slider-label">
-            Max cell size
+            {t("controls.maxSize")}
             <span className="mono">{params.maxArea}</span>
           </span>
           <input
@@ -131,9 +130,9 @@ export function Controls({
       <hr className="divider" />
 
       <div className="control-block">
-        <span className="control-heading">Protocol</span>
+        <span className="control-heading">{t("controls.protocol")}</span>
         <div className="control-inputs">
-          <Field label="Dilution factor" htmlFor="dilution">
+          <Field label={t("controls.dilution")} htmlFor="dilution">
             <Input
               id="dilution"
               className="mono"
@@ -144,7 +143,7 @@ export function Controls({
               onChange={(e) => onDilutionChange(Number(e.target.value))}
             />
           </Field>
-          <Field label="Large squares counted" htmlFor="squares">
+          <Field label={t("controls.squares")} htmlFor="squares">
             <Input
               id="squares"
               className="mono"
@@ -163,18 +162,18 @@ export function Controls({
       <div className="control-actions">
         <button className="btn btn-ghost btn-sm" onClick={onClear}>
           <RotateCcw size={15} />
-          Clear markers
+          {t("controls.clearMarkers")}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onNewImage}>
           <ImagePlus size={15} />
-          New image
+          {t("controls.newImage")}
         </button>
       </div>
 
       {hasRoi ? (
         <button className="btn btn-ghost btn-sm" onClick={onClearRoi}>
           <Crop size={15} />
-          Reset region to full image
+          {t("controls.resetRegion")}
         </button>
       ) : null}
     </div>

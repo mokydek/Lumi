@@ -3,9 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../backend/auth";
 import { Header } from "../../shared/Header";
 import { Button, Field, Input } from "../../shared/ui";
+import { useI18n } from "../i18n";
 
 export default function LoginPage() {
   const { signIn, configured } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/app";
@@ -33,18 +35,13 @@ export default function LoginPage() {
       <Header />
       <main className="auth-shell">
         <div className="auth-card card">
-          <h1 className="auth-title">Sign in</h1>
-          <p className="auth-sub muted">Welcome back. Continue to your analyses.</p>
+          <h1 className="auth-title">{t("auth.signinTitle")}</h1>
+          <p className="auth-sub muted">{t("auth.signinSub")}</p>
 
-          {!configured ? (
-            <div className="notice">
-              Accounts are not enabled in this build. Add your Supabase keys to a .env file
-              to turn on sign in and saved history. The analyzer works without an account.
-            </div>
-          ) : null}
+          {!configured ? <div className="notice">{t("auth.notConfigured")}</div> : null}
 
           <form className="auth-form" onSubmit={handleSubmit}>
-            <Field label="Email" htmlFor="email">
+            <Field label={t("auth.email")} htmlFor="email">
               <Input
                 id="email"
                 type="email"
@@ -55,7 +52,7 @@ export default function LoginPage() {
                 disabled={!configured || busy}
               />
             </Field>
-            <Field label="Password" htmlFor="password">
+            <Field label={t("auth.password")} htmlFor="password">
               <Input
                 id="password"
                 type="password"
@@ -70,12 +67,15 @@ export default function LoginPage() {
             {error ? <div className="notice notice-error">{error}</div> : null}
 
             <Button type="submit" className="btn-block" disabled={!configured || busy}>
-              {busy ? "Signing in" : "Sign in"}
+              {busy ? t("auth.signingIn") : t("auth.signin")}
             </Button>
           </form>
 
           <p className="auth-alt muted">
-            No account yet? <Link to="/signup" className="link">Create one</Link>
+            {t("auth.noAccount")}{" "}
+            <Link to="/signup" className="link">
+              {t("auth.createOne")}
+            </Link>
           </p>
         </div>
       </main>

@@ -1,6 +1,8 @@
 // A static, monochrome illustration of a Goryaev grid with detected cells.
 // Green rings mark live cells, blue dots mark dead cells. No gradients.
 
+import { useI18n } from "../frontend/i18n";
+
 const live = [
   [70, 64],
   [150, 96],
@@ -21,6 +23,7 @@ const dead = [
 ];
 
 export function ChamberIllustration() {
+  const { t } = useI18n();
   const lines = [];
   for (let i = 1; i < 8; i++) {
     const p = 24 + i * 38;
@@ -37,7 +40,7 @@ export function ChamberIllustration() {
       className="chamber-illustration"
       viewBox="0 0 352 352"
       role="img"
-      aria-label="Goryaev grid with detected live and dead cells"
+      aria-label={t("illustration.alt")}
     >
       <rect x={24} y={24} width={304} height={304} className="ci-frame" />
       {lines}

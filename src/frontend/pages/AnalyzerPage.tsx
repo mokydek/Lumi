@@ -15,6 +15,7 @@ import {
 } from "../lib/counting";
 import { createSampleImage } from "../lib/sample";
 import { computeResults } from "../lib/math";
+import { useI18n } from "../i18n";
 
 export type Tool = "live" | "dead" | "erase" | "region";
 
@@ -34,6 +35,7 @@ function normalizeRect(x0: number, y0: number, x1: number, y1: number): Roi {
 
 export default function AnalyzerPage() {
   const { configured, user } = useAuth();
+  const { t } = useI18n();
 
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -312,12 +314,9 @@ export default function AnalyzerPage() {
         {!imageData || !dims ? (
           <div className="analyzer-empty">
             <div className="app-intro">
-              <span className="eyebrow">Analyzer</span>
-              <h1 className="app-title">Count a sample</h1>
-              <p className="muted app-intro-sub">
-                Load a photo of a Goryaev chamber. CellDrop proposes the live and dead
-                cells, then you refine by hand. Nothing leaves your browser.
-              </p>
+              <span className="eyebrow">{t("analyzer.eyebrow")}</span>
+              <h1 className="app-title">{t("analyzer.title")}</h1>
+              <p className="muted app-intro-sub">{t("analyzer.sub")}</p>
             </div>
             <ImageDropzone onImage={handleImage} onSample={handleSample} />
           </div>
@@ -338,13 +337,13 @@ export default function AnalyzerPage() {
               <div className="canvas-legend">
                 <span className="badge">
                   <span className="dot" style={{ background: "var(--live)" }} />
-                  Live rings
+                  {t("legend.live")}
                 </span>
                 <span className="badge">
                   <span className="dot" style={{ background: "var(--dead)" }} />
-                  Dead dots
+                  {t("legend.dead")}
                 </span>
-                {roi ? <span className="badge">Region active</span> : null}
+                {roi ? <span className="badge">{t("legend.region")}</span> : null}
                 <span className="canvas-meta mono muted">
                   {dims.width} x {dims.height}
                 </span>
