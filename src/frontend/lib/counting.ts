@@ -227,15 +227,24 @@ export function detectCells(
       const b = data[offset + 2];
       const blueness = b - (r + g) / 2;
 
-      // Live cells stand out in the direction set by the image polarity.
-      const liveHit = brightField
-        ? value < localMean - contrast
-        : value > localMean + contrast;
+      const localDarker = value < localMean - contrast;
+      const localBrighter = value > localMean + contrast;
 
-      // A dead cell is blue and clearly darker than the overall field. Using the
-      // whole image background rather than the local mean avoids flagging the dim
-      // halo that a bright live cell casts on its own neighbourhood.
-      if (blueness > params.blueThreshold && b > 55 && value < globalMean - Math.max(12, contrast * 0.6)) {
+      // Live cells stand out in the direction set by the image polarity.
+      const liveHit = brightField ? localDarker : localBrighter;
+
+      // A dead cell must be a real dark spot: blue, a local dark spot (darker
+      // than its neighbourhood, which rejects smooth shading and vignetting),
+      // and genuinely dark relative to the whole field. The multiplicative
+      // global gate separates truly dark stained cells from a merely dimmer
+      // patch of background, so plain field is never invented as cells.
+      const deadHit =
+        blueness > params.blueThreshold &&
+        b > 55 &&
+        localDarker &&
+        value < globalMean * 0.66;
+
+      if (deadHit) {
         deadMask[i] = 1;
       } else if (liveHit) {
         liveMask[i] = 1;
