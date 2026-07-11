@@ -1,4 +1,4 @@
-import { CirclePlus, CircleDot, Eraser, RotateCcw, ImagePlus } from "lucide-react";
+import { CirclePlus, CircleDot, Eraser, Crop, RotateCcw, ImagePlus } from "lucide-react";
 import type { DetectParams } from "../lib/counting";
 import { Field, Input } from "../../shared/ui";
 import type { Tool } from "../pages/AnalyzerPage";
@@ -12,6 +12,8 @@ interface Props {
   squares: number;
   onDilutionChange: (value: number) => void;
   onSquaresChange: (value: number) => void;
+  hasRoi: boolean;
+  onClearRoi: () => void;
   onClear: () => void;
   onNewImage: () => void;
 }
@@ -20,6 +22,7 @@ const tools: { id: Tool; label: string; icon: typeof CirclePlus }[] = [
   { id: "live", label: "Live", icon: CirclePlus },
   { id: "dead", label: "Dead", icon: CircleDot },
   { id: "erase", label: "Erase", icon: Eraser },
+  { id: "region", label: "Region", icon: Crop },
 ];
 
 export function Controls({
@@ -31,6 +34,8 @@ export function Controls({
   squares,
   onDilutionChange,
   onSquaresChange,
+  hasRoi,
+  onClearRoi,
   onClear,
   onNewImage,
 }: Props) {
@@ -55,7 +60,8 @@ export function Controls({
           ))}
         </div>
         <p className="control-hint">
-          Click the image to add a marker. Pick Erase to remove one.
+          Click the image to add a marker, Erase to remove one, or Region to drag a box
+          that limits automatic detection. Shortcuts L, D, E, R.
         </p>
       </div>
 
@@ -164,6 +170,13 @@ export function Controls({
           New image
         </button>
       </div>
+
+      {hasRoi ? (
+        <button className="btn btn-ghost btn-sm" onClick={onClearRoi}>
+          <Crop size={15} />
+          Reset region to full image
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -11,10 +11,26 @@ import {
   DEFAULT_PARAMS,
   type DetectParams,
   type Marker,
+  type Roi,
 } from "../lib/counting";
+import { createSampleImage } from "../lib/sample";
 import { computeResults } from "../lib/math";
 
-export type Tool = "live" | "dead" | "erase";
+export type Tool = "live" | "dead" | "erase" | "region";
+
+interface Size {
+  width: number;
+  height: number;
+}
+
+function normalizeRect(x0: number, y0: number, x1: number, y1: number): Roi {
+  return {
+    x: Math.min(x0, x1),
+    y: Math.min(y0, y1),
+    width: Math.abs(x1 - x0),
+    height: Math.abs(y1 - y0),
+  };
+}
 
 export default function AnalyzerPage() {
   const { configured, user } = useAuth();
@@ -22,12 +38,15 @@ export default function AnalyzerPage() {
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const manualIdRef = useRef(0);
+  const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
   const [imageData, setImageData] = useState<ImageData | null>(null);
-  const [dims, setDims] = useState<{ width: number; height: number } | null>(null);
+  const [dims, setDims] = useState<Size | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [params, setParams] = useState<DetectParams>(DEFAULT_PARAMS);
   const [tool, setTool] = useState<Tool>("live");
+  const [roi, setRoi] = useState<Roi | null>(null);
+  const [draft, setDraft] = useState<Roi | null>(null);
   const [dilution, setDilution] = useState(2);
   const [squares, setSquares] = useState(1);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -41,7 +60,18 @@ export default function AnalyzerPage() {
     [live, dead, dilution, squares]
   );
 
-  // Load an image, scale it to the analysis size, and read its pixels.
+  const loadImage = (data: ImageData, size: Size) => {
+    manualIdRef.current = 0;
+    dragRef.current = null;
+    setSaveState("idle");
+    setSaveError(null);
+    setMarkers([]);
+    setRoi(null);
+    setDraft(null);
+    setDims(size);
+    setImageData(data);
+  };
+
   const handleImage = (file: File) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -56,16 +86,15 @@ export default function AnalyzerPage() {
         return;
       }
       ctx.drawImage(img, 0, 0, size.width, size.height);
-      const data = ctx.getImageData(0, 0, size.width, size.height);
-      manualIdRef.current = 0;
-      setSaveState("idle");
-      setSaveError(null);
-      setMarkers([]);
-      setDims(size);
-      setImageData(data);
+      loadImage(ctx.getImageData(0, 0, size.width, size.height), size);
       URL.revokeObjectURL(url);
     };
     img.src = url;
+  };
+
+  const handleSample = () => {
+    const data = createSampleImage();
+    loadImage(data, { width: data.width, height: data.height });
   };
 
   // Draw the source image on the base canvas.
@@ -77,12 +106,12 @@ export default function AnalyzerPage() {
     canvas.getContext("2d")?.putImageData(imageData, 0, 0);
   }, [imageData]);
 
-  // Run automatic detection, debounced, whenever the image or sensitivity changes.
-  // Manual markers are preserved; only the automatic ones are replaced.
+  // Run automatic detection, debounced, whenever the image, sensitivity, or
+  // region changes. Manual markers are preserved; only automatic ones are replaced.
   useEffect(() => {
     if (!imageData) return;
     const timer = setTimeout(() => {
-      const detected = detectCells(imageData, params);
+      const detected = detectCells(imageData, params, roi);
       setMarkers((prev) => [
         ...prev.filter((m) => m.source === "manual"),
         ...detected.live,
@@ -90,9 +119,9 @@ export default function AnalyzerPage() {
       ]);
     }, 180);
     return () => clearTimeout(timer);
-  }, [imageData, params]);
+  }, [imageData, params, roi]);
 
-  // Draw the marker overlay.
+  // Draw the region shade and the marker overlay.
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || !dims) return;
@@ -101,6 +130,17 @@ export default function AnalyzerPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const activeRoi = draft ?? roi;
+    if (activeRoi && activeRoi.width > 0 && activeRoi.height > 0) {
+      ctx.fillStyle = "rgba(10, 10, 10, 0.28)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(activeRoi.x, activeRoi.y, activeRoi.width, activeRoi.height);
+      ctx.strokeStyle = "#0b8a4b";
+      ctx.lineWidth = Math.max(2, dims.width / 320);
+      ctx.strokeRect(activeRoi.x, activeRoi.y, activeRoi.width, activeRoi.height);
+    }
+
     const r = Math.max(6, Math.round(dims.width / 110));
     for (const m of markers) {
       ctx.beginPath();
@@ -117,17 +157,37 @@ export default function AnalyzerPage() {
         ctx.stroke();
       }
     }
-  }, [markers, dims]);
+  }, [markers, dims, roi, draft]);
 
-  const handleCanvasClick = (event: MouseEvent<HTMLCanvasElement>) => {
+  // Keyboard shortcuts for the marker tools.
+  useEffect(() => {
+    if (!imageData) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      const key = event.key.toLowerCase();
+      if (key === "l") setTool("live");
+      else if (key === "d") setTool("dead");
+      else if (key === "e") setTool("erase");
+      else if (key === "r") setTool("region");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [imageData]);
+
+  const toCanvas = (event: MouseEvent<HTMLCanvasElement>): { x: number; y: number } | null => {
     const canvas = overlayRef.current;
-    if (!canvas || !dims) return;
+    if (!canvas || !dims) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    return {
+      x: (event.clientX - rect.left) * (canvas.width / rect.width),
+      y: (event.clientY - rect.top) * (canvas.height / rect.height),
+    };
+  };
 
+  const applyMarkerAt = (x: number, y: number) => {
     if (tool === "erase") {
-      const radius = Math.max(10, dims.width / 70);
+      const radius = Math.max(10, (dims?.width ?? 100) / 70);
       let bestId: string | null = null;
       let bestDist = radius * radius;
       for (const m of markers) {
@@ -140,23 +200,66 @@ export default function AnalyzerPage() {
       if (bestId) setMarkers((prev) => prev.filter((m) => m.id !== bestId));
       return;
     }
+    if (tool === "live" || tool === "dead") {
+      const marker: Marker = {
+        id: `manual-${manualIdRef.current++}`,
+        x,
+        y,
+        type: tool,
+        source: "manual",
+      };
+      setMarkers((prev) => [...prev, marker]);
+    }
+  };
 
-    const marker: Marker = {
-      id: `manual-${manualIdRef.current++}`,
-      x,
-      y,
-      type: tool,
-      source: "manual",
-    };
-    setMarkers((prev) => [...prev, marker]);
+  const handleMouseDown = (event: MouseEvent<HTMLCanvasElement>) => {
+    const p = toCanvas(event);
+    if (!p) return;
+    dragRef.current = { x: p.x, y: p.y, moved: false };
+    if (tool === "region") setDraft({ x: p.x, y: p.y, width: 0, height: 0 });
+  };
+
+  const handleMouseMove = (event: MouseEvent<HTMLCanvasElement>) => {
+    const start = dragRef.current;
+    if (!start) return;
+    const p = toCanvas(event);
+    if (!p) return;
+    if (Math.abs(p.x - start.x) > 3 || Math.abs(p.y - start.y) > 3) start.moved = true;
+    if (tool === "region") setDraft(normalizeRect(start.x, start.y, p.x, p.y));
+  };
+
+  const handleMouseUp = (event: MouseEvent<HTMLCanvasElement>) => {
+    const start = dragRef.current;
+    dragRef.current = null;
+    const p = toCanvas(event);
+
+    if (tool === "region") {
+      setDraft(null);
+      if (start && p) {
+        const rect = normalizeRect(start.x, start.y, p.x, p.y);
+        setRoi(rect.width > 12 && rect.height > 12 ? rect : null);
+      }
+      return;
+    }
+
+    if (!start || !p || start.moved) return;
+    applyMarkerAt(p.x, p.y);
+  };
+
+  const handleMouseLeave = () => {
+    dragRef.current = null;
+    if (tool === "region") setDraft(null);
   };
 
   const handleClear = () => setMarkers([]);
+  const handleClearRoi = () => setRoi(null);
 
   const handleNewImage = () => {
     setImageData(null);
     setDims(null);
     setMarkers([]);
+    setRoi(null);
+    setDraft(null);
     setSaveState("idle");
     setSaveError(null);
   };
@@ -216,7 +319,7 @@ export default function AnalyzerPage() {
                 cells, then you refine by hand. Nothing leaves your browser.
               </p>
             </div>
-            <ImageDropzone onImage={handleImage} />
+            <ImageDropzone onImage={handleImage} onSample={handleSample} />
           </div>
         ) : (
           <div className="analyzer">
@@ -226,7 +329,10 @@ export default function AnalyzerPage() {
                 <canvas
                   ref={overlayRef}
                   className={`overlay-canvas cursor-${tool}`}
-                  onClick={handleCanvasClick}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
                 />
               </div>
               <div className="canvas-legend">
@@ -238,6 +344,7 @@ export default function AnalyzerPage() {
                   <span className="dot" style={{ background: "var(--dead)" }} />
                   Dead dots
                 </span>
+                {roi ? <span className="badge">Region active</span> : null}
                 <span className="canvas-meta mono muted">
                   {dims.width} x {dims.height}
                 </span>
@@ -267,6 +374,8 @@ export default function AnalyzerPage() {
                   squares={squares}
                   onDilutionChange={setDilution}
                   onSquaresChange={setSquares}
+                  hasRoi={Boolean(roi)}
+                  onClearRoi={handleClearRoi}
                   onClear={handleClear}
                   onNewImage={handleNewImage}
                 />

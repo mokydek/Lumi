@@ -34,6 +34,14 @@ export interface DetectParams {
   maxArea: number;
 }
 
+// A rectangular region of interest in analysis canvas pixels.
+export interface Roi {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export const DEFAULT_PARAMS: DetectParams = {
   blueThreshold: 26,
   darkThreshold: 118,
@@ -133,7 +141,8 @@ let autoIdCounter = 0;
 
 export function detectCells(
   image: ImageData,
-  params: DetectParams
+  params: DetectParams,
+  roi?: Roi | null
 ): { live: Marker[]; dead: Marker[] } {
   const { width, height, data } = image;
   const pixelCount = width * height;
@@ -141,19 +150,28 @@ export function detectCells(
   const deadMask = new Uint8Array(pixelCount);
   const liveMask = new Uint8Array(pixelCount);
 
-  for (let i = 0; i < pixelCount; i++) {
-    const offset = i * 4;
-    const r = data[offset];
-    const g = data[offset + 1];
-    const b = data[offset + 2];
+  // When a region of interest is set, only classify pixels inside it.
+  const x0 = roi ? Math.max(0, Math.floor(roi.x)) : 0;
+  const y0 = roi ? Math.max(0, Math.floor(roi.y)) : 0;
+  const x1 = roi ? Math.min(width, Math.floor(roi.x + roi.width)) : width;
+  const y1 = roi ? Math.min(height, Math.floor(roi.y + roi.height)) : height;
 
-    const luminance = r * 0.299 + g * 0.587 + b * 0.114;
-    const blueness = b - (r + g) / 2;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = y * width + x;
+      const offset = i * 4;
+      const r = data[offset];
+      const g = data[offset + 1];
+      const b = data[offset + 2];
 
-    if (blueness > params.blueThreshold && b > 55) {
-      deadMask[i] = 1;
-    } else if (luminance < params.darkThreshold && blueness < params.blueThreshold * 0.5) {
-      liveMask[i] = 1;
+      const luminance = r * 0.299 + g * 0.587 + b * 0.114;
+      const blueness = b - (r + g) / 2;
+
+      if (blueness > params.blueThreshold && b > 55) {
+        deadMask[i] = 1;
+      } else if (luminance < params.darkThreshold && blueness < params.blueThreshold * 0.5) {
+        liveMask[i] = 1;
+      }
     }
   }
 

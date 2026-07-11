@@ -1,11 +1,12 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { UploadCloud, Camera } from "lucide-react";
+import { UploadCloud, Camera, Sparkles } from "lucide-react";
 
 interface Props {
   onImage: (file: File) => void;
+  onSample: () => void;
 }
 
-export function ImageDropzone({ onImage }: Props) {
+export function ImageDropzone({ onImage, onSample }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -54,6 +55,10 @@ export function ImageDropzone({ onImage }: Props) {
         <button className="btn btn-ghost" onClick={() => cameraInput.current?.click()}>
           <Camera size={16} />
           Use camera
+        </button>
+        <button className="btn btn-ghost" onClick={onSample}>
+          <Sparkles size={16} />
+          Try a sample
         </button>
       </div>
 
