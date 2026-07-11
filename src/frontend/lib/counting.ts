@@ -1,17 +1,19 @@
 // CellDrop counting engine.
 // Runs entirely in the browser on a canvas. No backend, no heavy dependency.
 //
-// Strategy, deliberately pragmatic for the MVP:
-//   1. Dead cells absorb Trypan Blue and read as strongly blue pixels.
-//      We threshold "blueness" to build a dead mask.
-//   2. Live cells stay transparent and show up as darker refractile rings
-//      against the bright field. We threshold luminance for a live mask,
-//      excluding anything already flagged as blue.
-//   3. Connected component labelling turns each mask into discrete blobs.
-//      Area and aspect ratio filters drop noise and grid lines.
+// Dead cells absorb Trypan Blue and read as strongly blue pixels, so a blue
+// threshold finds them reliably.
 //
-// Computer vision is never perfect, so every marker is editable by hand in
-// the UI. The engine only proposes a starting point.
+// Live cells stay transparent and appear as refractile objects with a darker
+// rim against the field. Their absolute brightness varies wildly between photos,
+// so a fixed luminance threshold misses them whenever the image is bright. We
+// instead use an adaptive local contrast test: a pixel is a live candidate when
+// it is meaningfully darker than the average brightness of its own neighbourhood.
+// This adapts to bright or dim images automatically.
+//
+// Connected component labelling turns each mask into discrete blobs, and area
+// and aspect ratio filters drop noise and grid lines. Computer vision is never
+// perfect, so every marker stays editable by hand in the UI.
 
 export type MarkerType = "live" | "dead";
 export type MarkerSource = "auto" | "manual";
@@ -27,12 +29,19 @@ export interface Marker {
 export interface DetectParams {
   // How much the blue channel must exceed red and green for a dead cell.
   blueThreshold: number;
-  // Luminance below which a non blue pixel becomes a live cell candidate.
-  darkThreshold: number;
+  // Higher values detect fainter live cells (looser local contrast requirement).
+  liveSensitivity: number;
   // Blob area bounds in pixels of the analysis canvas.
   minArea: number;
   maxArea: number;
 }
+
+export const DEFAULT_PARAMS: DetectParams = {
+  blueThreshold: 24,
+  liveSensitivity: 24,
+  minArea: 16,
+  maxArea: 2600,
+};
 
 // A rectangular region of interest in analysis canvas pixels.
 export interface Roi {
@@ -41,13 +50,6 @@ export interface Roi {
   width: number;
   height: number;
 }
-
-export const DEFAULT_PARAMS: DetectParams = {
-  blueThreshold: 26,
-  darkThreshold: 118,
-  minArea: 14,
-  maxArea: 2400,
-};
 
 // Longest edge of the analysis canvas. Large phone photos are scaled down to
 // this size so detection stays fast and marker coordinates stay consistent.
@@ -139,6 +141,16 @@ function labelBlobs(
 
 let autoIdCounter = 0;
 
+function toMarkers(blobs: Blob[], type: MarkerType): Marker[] {
+  return blobs.map((blob) => ({
+    id: `auto-${autoIdCounter++}`,
+    x: blob.x,
+    y: blob.y,
+    type,
+    source: "auto",
+  }));
+}
+
 export function detectCells(
   image: ImageData,
   params: DetectParams,
@@ -147,15 +159,23 @@ export function detectCells(
   const { width, height, data } = image;
   const pixelCount = width * height;
 
+  const luminance = new Float32Array(pixelCount);
   const deadMask = new Uint8Array(pixelCount);
   const liveMask = new Uint8Array(pixelCount);
 
-  // When a region of interest is set, only classify pixels inside it.
+  // Luminance for every pixel (needed everywhere for the local averages).
+  for (let i = 0; i < pixelCount; i++) {
+    const offset = i * 4;
+    luminance[i] = data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
+  }
+
+  // Region of interest bounds. Classification only happens inside them.
   const x0 = roi ? Math.max(0, Math.floor(roi.x)) : 0;
   const y0 = roi ? Math.max(0, Math.floor(roi.y)) : 0;
   const x1 = roi ? Math.min(width, Math.floor(roi.x + roi.width)) : width;
   const y1 = roi ? Math.min(height, Math.floor(roi.y + roi.height)) : height;
 
+  // Dead mask: strongly blue pixels.
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const i = y * width + x;
@@ -163,36 +183,52 @@ export function detectCells(
       const r = data[offset];
       const g = data[offset + 1];
       const b = data[offset + 2];
-
-      const luminance = r * 0.299 + g * 0.587 + b * 0.114;
-      const blueness = b - (r + g) / 2;
-
-      if (blueness > params.blueThreshold && b > 55) {
+      if (b - (r + g) / 2 > params.blueThreshold && b > 55) {
         deadMask[i] = 1;
-      } else if (luminance < params.darkThreshold && blueness < params.blueThreshold * 0.5) {
+      }
+    }
+  }
+
+  // Integral image of luminance for O(1) local window averages.
+  const stride = width + 1;
+  const integral = new Float64Array(stride * (height + 1));
+  for (let y = 0; y < height; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < width; x++) {
+      rowSum += luminance[y * width + x];
+      integral[(y + 1) * stride + (x + 1)] = integral[y * stride + (x + 1)] + rowSum;
+    }
+  }
+
+  const radius = Math.min(40, Math.max(10, Math.round(width / 45)));
+  const contrast = Math.max(3, 48 - params.liveSensitivity);
+
+  // Live mask: pixels clearly darker than their local neighbourhood, not blue.
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = y * width + x;
+      if (deadMask[i] === 1) continue;
+
+      const ax = Math.max(0, x - radius);
+      const ay = Math.max(0, y - radius);
+      const bx = Math.min(width - 1, x + radius);
+      const by = Math.min(height - 1, y + radius);
+      const windowArea = (bx - ax + 1) * (by - ay + 1);
+      const sum =
+        integral[(by + 1) * stride + (bx + 1)] -
+        integral[ay * stride + (bx + 1)] -
+        integral[(by + 1) * stride + ax] +
+        integral[ay * stride + ax];
+      const localMean = sum / windowArea;
+
+      if (luminance[i] < localMean - contrast) {
         liveMask[i] = 1;
       }
     }
   }
 
-  const deadBlobs = labelBlobs(deadMask, width, height, params.minArea, params.maxArea);
-  const liveBlobs = labelBlobs(liveMask, width, height, params.minArea, params.maxArea);
-
-  const dead: Marker[] = deadBlobs.map((blob) => ({
-    id: `auto-${autoIdCounter++}`,
-    x: blob.x,
-    y: blob.y,
-    type: "dead",
-    source: "auto",
-  }));
-
-  const live: Marker[] = liveBlobs.map((blob) => ({
-    id: `auto-${autoIdCounter++}`,
-    x: blob.x,
-    y: blob.y,
-    type: "live",
-    source: "auto",
-  }));
+  const dead = toMarkers(labelBlobs(deadMask, width, height, params.minArea, params.maxArea), "dead");
+  const live = toMarkers(labelBlobs(liveMask, width, height, params.minArea, params.maxArea), "live");
 
   return { live, dead };
 }

@@ -86,15 +86,15 @@ export function Controls({
 
         <label className="slider">
           <span className="slider-label">
-            Dark threshold
-            <span className="mono">{params.darkThreshold}</span>
+            Live sensitivity
+            <span className="mono">{params.liveSensitivity}</span>
           </span>
           <input
             type="range"
-            min={40}
-            max={200}
-            value={params.darkThreshold}
-            onChange={(e) => update({ darkThreshold: Number(e.target.value) })}
+            min={4}
+            max={44}
+            value={params.liveSensitivity}
+            onChange={(e) => update({ liveSensitivity: Number(e.target.value) })}
           />
         </label>
 
