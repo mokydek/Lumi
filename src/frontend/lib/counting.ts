@@ -1,19 +1,23 @@
 // CellDrop counting engine.
 // Runs entirely in the browser on a canvas. No backend, no heavy dependency.
 //
-// Dead cells absorb Trypan Blue and read as strongly blue pixels, so a blue
-// threshold finds them reliably.
+// The engine counts discrete cells with a centre versus surround blob detector
+// followed by non maximum suppression. For every pixel it compares the average
+// brightness of a small inner window (the size of a cell) with a larger outer
+// window (the surrounding field). A real cell makes the inner window stand out
+// from the outer one, so it produces a strong local peak. Flat field, texture,
+// noise, and thin grid lines do not, because the large windows average them
+// away. Non maximum suppression then keeps one marker per cell.
 //
-// Live cells stay transparent and appear as refractile objects with a darker
-// rim against the field. Their absolute brightness varies wildly between photos,
-// so a fixed luminance threshold misses them whenever the image is bright. We
-// instead use an adaptive local contrast test: a pixel is a live candidate when
-// it is meaningfully darker than the average brightness of its own neighbourhood.
-// This adapts to bright or dim images automatically.
+// This is robust by design: the detection reacts to compact, cell sized spots
+// rather than to any pixel that crosses a threshold, so turning sensitivity up
+// finds fainter cells instead of exploding into thousands of false marks.
 //
-// Connected component labelling turns each mask into discrete blobs, and area
-// and aspect ratio filters drop noise and grid lines. Computer vision is never
-// perfect, so every marker stays editable by hand in the UI.
+// Image polarity is measured once. On a light field live cells read darker than
+// the background; on a dark or heavily stained (blue) field they read brighter.
+// Dead cells absorb Trypan Blue and read as dark blue spots in either case.
+//
+// Computer vision is never perfect, so every marker stays editable by hand.
 
 export type MarkerType = "live" | "dead";
 export type MarkerSource = "auto" | "manual";
@@ -29,18 +33,17 @@ export interface Marker {
 export interface DetectParams {
   // How much the blue channel must exceed red and green for a dead cell.
   blueThreshold: number;
-  // Higher values detect fainter live cells (looser local contrast requirement).
+  // Higher values detect fainter cells (lower peak threshold). Bounded so even
+  // the maximum still rejects flat noise.
   liveSensitivity: number;
-  // Blob area bounds in pixels of the analysis canvas.
-  minArea: number;
-  maxArea: number;
+  // Approximate cell radius in analysis pixels. Sets the inner detection window.
+  cellSize: number;
 }
 
 export const DEFAULT_PARAMS: DetectParams = {
   blueThreshold: 24,
-  liveSensitivity: 24,
-  minArea: 16,
-  maxArea: 2600,
+  liveSensitivity: 14,
+  cellSize: 7,
 };
 
 // A rectangular region of interest in analysis canvas pixels.
@@ -55,101 +58,13 @@ export interface Roi {
 // this size so detection stays fast and marker coordinates stay consistent.
 export const ANALYSIS_MAX_EDGE = 1100;
 
-interface Blob {
+interface Peak {
   x: number;
   y: number;
-  area: number;
-  width: number;
-  height: number;
-}
-
-function labelBlobs(
-  mask: Uint8Array,
-  width: number,
-  height: number,
-  minArea: number,
-  maxArea: number
-): Blob[] {
-  const visited = new Uint8Array(mask.length);
-  const stack: number[] = [];
-  const blobs: Blob[] = [];
-
-  for (let start = 0; start < mask.length; start++) {
-    if (mask[start] === 0 || visited[start] === 1) continue;
-
-    stack.length = 0;
-    stack.push(start);
-    visited[start] = 1;
-
-    let area = 0;
-    let sumX = 0;
-    let sumY = 0;
-    let minX = width;
-    let maxX = 0;
-    let minY = height;
-    let maxY = 0;
-
-    while (stack.length > 0) {
-      const idx = stack.pop() as number;
-      const x = idx % width;
-      const y = (idx - x) / width;
-
-      area++;
-      sumX += x;
-      sumY += y;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-
-      // 8-connected neighbours
-      for (let dy = -1; dy <= 1; dy++) {
-        const ny = y + dy;
-        if (ny < 0 || ny >= height) continue;
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const nx = x + dx;
-          if (nx < 0 || nx >= width) continue;
-          const nidx = ny * width + nx;
-          if (mask[nidx] === 1 && visited[nidx] === 0) {
-            visited[nidx] = 1;
-            stack.push(nidx);
-          }
-        }
-      }
-    }
-
-    if (area < minArea || area > maxArea) continue;
-
-    const w = maxX - minX + 1;
-    const h = maxY - minY + 1;
-    const aspect = Math.max(w, h) / Math.max(1, Math.min(w, h));
-    // Grid lines are long and thin; reject them.
-    if (aspect > 4.5) continue;
-
-    blobs.push({
-      x: Math.round(sumX / area),
-      y: Math.round(sumY / area),
-      area,
-      width: w,
-      height: h,
-    });
-  }
-
-  return blobs;
+  score: number;
 }
 
 let autoIdCounter = 0;
-
-function toMarkers(blobs: Blob[], type: MarkerType): Marker[] {
-  return blobs.map((blob) => ({
-    id: `auto-${autoIdCounter++}`,
-    x: blob.x,
-    y: blob.y,
-    type,
-    source: "auto",
-  }));
-}
 
 export function detectCells(
   image: ImageData,
@@ -160,30 +75,28 @@ export function detectCells(
   const pixelCount = width * height;
 
   const luminance = new Float32Array(pixelCount);
-  const deadMask = new Uint8Array(pixelCount);
-  const liveMask = new Uint8Array(pixelCount);
+  const blueness = new Float32Array(pixelCount);
 
-  // Luminance for every pixel (needed everywhere for the local averages).
   let globalSum = 0;
   for (let i = 0; i < pixelCount; i++) {
     const offset = i * 4;
-    const value = data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const value = r * 0.299 + g * 0.587 + b * 0.114;
     luminance[i] = value;
+    blueness[i] = b - (r + g) / 2;
     globalSum += value;
   }
-  // Image polarity. On a light field cells read darker than the background; on a
-  // dark or heavily stained (blue) field they read brighter. Picking one polarity
-  // per image avoids catching both a cell and its halo.
   const globalMean = globalSum / pixelCount;
   const brightField = globalMean >= 130;
 
-  // Region of interest bounds. Classification only happens inside them.
   const x0 = roi ? Math.max(0, Math.floor(roi.x)) : 0;
   const y0 = roi ? Math.max(0, Math.floor(roi.y)) : 0;
   const x1 = roi ? Math.min(width, Math.floor(roi.x + roi.width)) : width;
   const y1 = roi ? Math.min(height, Math.floor(roi.y + roi.height)) : height;
 
-  // Integral image of luminance for O(1) local window averages.
+  // Integral image of luminance for O(1) window averages.
   const stride = width + 1;
   const integral = new Float64Array(stride * (height + 1));
   for (let y = 0; y < height; y++) {
@@ -194,66 +107,135 @@ export function detectCells(
     }
   }
 
-  const radius = Math.min(40, Math.max(10, Math.round(width / 45)));
-  const contrast = Math.max(3, 48 - params.liveSensitivity);
+  const meanAt = (cx: number, cy: number, radius: number): number => {
+    const ax = Math.max(0, cx - radius);
+    const ay = Math.max(0, cy - radius);
+    const bx = Math.min(width - 1, cx + radius);
+    const by = Math.min(height - 1, cy + radius);
+    const area = (bx - ax + 1) * (by - ay + 1);
+    const sum =
+      integral[(by + 1) * stride + (bx + 1)] -
+      integral[ay * stride + (bx + 1)] -
+      integral[(by + 1) * stride + ax] +
+      integral[ay * stride + ax];
+    return sum / area;
+  };
 
-  // Classify each pixel by how it stands out from its local neighbourhood.
-  // This copes with both common image polarities:
-  //   bright field  -> live cells show as darker rims, dead cells as dark blue blobs
-  //   stained field -> the whole photo is blue; live cells read brighter than the
-  //                    field, dead cells read as darker, more saturated blue spots
-  // A dead cell is blue and darker than its surroundings. Anything else that
-  // stands out from the local average, brighter or darker, is a live candidate.
+  const rIn = Math.max(3, Math.round(params.cellSize));
+  const rOut = Math.max(rIn + 3, Math.round(params.cellSize * 2.6));
+  // Peak must clear this centre versus surround margin. Kept well above noise
+  // even at maximum sensitivity so the count never explodes.
+  const threshold = Math.max(10, 34 - params.liveSensitivity);
+  // Suppression radius near a cell diameter so each cell yields a single marker.
+  const nms = Math.max(6, Math.round(rIn * 2.4));
+
+  // Centre versus surround score. Positive brightScore means the centre is
+  // brighter than its surroundings (a bright blob); positive darkScore means it
+  // is darker (a dark blob).
+  const brightScore = new Float32Array(pixelCount);
+  const darkScore = new Float32Array(pixelCount);
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const i = y * width + x;
-
-      const ax = Math.max(0, x - radius);
-      const ay = Math.max(0, y - radius);
-      const bx = Math.min(width - 1, x + radius);
-      const by = Math.min(height - 1, y + radius);
-      const windowArea = (bx - ax + 1) * (by - ay + 1);
-      const sum =
-        integral[(by + 1) * stride + (bx + 1)] -
-        integral[ay * stride + (bx + 1)] -
-        integral[(by + 1) * stride + ax] +
-        integral[ay * stride + ax];
-      const localMean = sum / windowArea;
-      const value = luminance[i];
-
-      const offset = i * 4;
-      const r = data[offset];
-      const g = data[offset + 1];
-      const b = data[offset + 2];
-      const blueness = b - (r + g) / 2;
-
-      const localDarker = value < localMean - contrast;
-      const localBrighter = value > localMean + contrast;
-
-      // Live cells stand out in the direction set by the image polarity.
-      const liveHit = brightField ? localDarker : localBrighter;
-
-      // A dead cell must be a real dark spot: blue, a local dark spot (darker
-      // than its neighbourhood, which rejects smooth shading and vignetting),
-      // and genuinely dark relative to the whole field. The multiplicative
-      // global gate separates truly dark stained cells from a merely dimmer
-      // patch of background, so plain field is never invented as cells.
-      const deadHit =
-        blueness > params.blueThreshold &&
-        b > 55 &&
-        localDarker &&
-        value < globalMean * 0.66;
-
-      if (deadHit) {
-        deadMask[i] = 1;
-      } else if (liveHit) {
-        liveMask[i] = 1;
-      }
+      const diff = meanAt(x, y, rIn) - meanAt(x, y, rOut);
+      brightScore[i] = diff;
+      darkScore[i] = -diff;
     }
   }
 
-  const dead = toMarkers(labelBlobs(deadMask, width, height, params.minArea, params.maxArea), "dead");
-  const live = toMarkers(labelBlobs(liveMask, width, height, params.minArea, params.maxArea), "live");
+  const collectPeaks = (score: Float32Array): Peak[] => {
+    const candidates: Peak[] = [];
+    for (let y = Math.max(1, y0); y < Math.min(height - 1, y1); y++) {
+      for (let x = Math.max(1, x0); x < Math.min(width - 1, x1); x++) {
+        const i = y * width + x;
+        const s = score[i];
+        if (s <= threshold) continue;
+        if (
+          s < score[i - 1] ||
+          s < score[i + 1] ||
+          s < score[i - width] ||
+          s < score[i + width] ||
+          s < score[i - width - 1] ||
+          s < score[i - width + 1] ||
+          s < score[i + width - 1] ||
+          s < score[i + width + 1]
+        ) {
+          continue;
+        }
+        candidates.push({ x, y, score: s });
+      }
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+
+    // Greedy non maximum suppression using a spatial grid for fast lookup.
+    const accepted: Peak[] = [];
+    const grid = new Map<string, Peak[]>();
+    const cellSizeGrid = Math.max(1, nms);
+    const nmsSq = nms * nms;
+
+    for (const cand of candidates) {
+      const gx = Math.floor(cand.x / cellSizeGrid);
+      const gy = Math.floor(cand.y / cellSizeGrid);
+      let ok = true;
+      for (let dgx = -1; dgx <= 1 && ok; dgx++) {
+        for (let dgy = -1; dgy <= 1 && ok; dgy++) {
+          const near = grid.get(`${gx + dgx},${gy + dgy}`);
+          if (!near) continue;
+          for (const a of near) {
+            if ((a.x - cand.x) ** 2 + (a.y - cand.y) ** 2 < nmsSq) {
+              ok = false;
+              break;
+            }
+          }
+        }
+      }
+      if (!ok) continue;
+      accepted.push(cand);
+      const key = `${gx},${gy}`;
+      const bucket = grid.get(key);
+      if (bucket) bucket.push(cand);
+      else grid.set(key, [cand]);
+    }
+
+    return accepted;
+  };
+
+  const marker = (peak: Peak, type: MarkerType): Marker => ({
+    id: `auto-${autoIdCounter++}`,
+    x: peak.x,
+    y: peak.y,
+    type,
+    source: "auto",
+  });
+
+  const isDeadCentre = (peak: Peak): boolean => {
+    const i = peak.y * width + peak.x;
+    return (
+      blueness[i] > params.blueThreshold &&
+      data[i * 4 + 2] > 55 &&
+      luminance[i] < globalMean * 0.66
+    );
+  };
+
+  const live: Marker[] = [];
+  const dead: Marker[] = [];
+
+  if (brightField) {
+    // Cells read darker than the light field. Split dark blobs by blue.
+    for (const peak of collectPeaks(darkScore)) {
+      if (isDeadCentre(peak)) dead.push(marker(peak, "dead"));
+      else live.push(marker(peak, "live"));
+    }
+  } else {
+    // Stained field. Live cells are the bright blobs, dead cells the dark blue ones.
+    for (const peak of collectPeaks(brightScore)) {
+      live.push(marker(peak, "live"));
+    }
+    for (const peak of collectPeaks(darkScore)) {
+      if (isDeadCentre(peak)) dead.push(marker(peak, "dead"));
+    }
+  }
 
   return { live, dead };
 }

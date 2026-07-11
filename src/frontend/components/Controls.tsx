@@ -91,7 +91,7 @@ export function Controls({
           <input
             type="range"
             min={4}
-            max={44}
+            max={24}
             value={params.liveSensitivity}
             onChange={(e) => update({ liveSensitivity: Number(e.target.value) })}
           />
@@ -99,30 +99,15 @@ export function Controls({
 
         <label className="slider">
           <span className="slider-label">
-            {t("controls.minSize")}
-            <span className="mono">{params.minArea}</span>
+            {t("controls.cellSize")}
+            <span className="mono">{params.cellSize}</span>
           </span>
           <input
             type="range"
             min={4}
-            max={120}
-            value={params.minArea}
-            onChange={(e) => update({ minArea: Number(e.target.value) })}
-          />
-        </label>
-
-        <label className="slider">
-          <span className="slider-label">
-            {t("controls.maxSize")}
-            <span className="mono">{params.maxArea}</span>
-          </span>
-          <input
-            type="range"
-            min={400}
-            max={6000}
-            step={100}
-            value={params.maxArea}
-            onChange={(e) => update({ maxArea: Number(e.target.value) })}
+            max={16}
+            value={params.cellSize}
+            onChange={(e) => update({ cellSize: Number(e.target.value) })}
           />
         </label>
       </div>

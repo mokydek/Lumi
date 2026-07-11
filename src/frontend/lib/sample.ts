@@ -1,6 +1,7 @@
 // Builds a synthetic but believable Goryaev chamber image so the analyzer can
-// demonstrate itself without the user supplying a photo.
-// Live cells are drawn as dark refractile rings, dead cells as solid blue blobs.
+// demonstrate itself without the user supplying a photo. It mirrors the common
+// real case: a blue stained field where live cells are bright refractile spots
+// and dead cells are darker blue blobs.
 
 // Small seeded pseudo random generator so the sample looks identical every time.
 function mulberry32(seed: number) {
@@ -24,17 +25,17 @@ export function createSampleImage(): ImageData {
     return new ImageData(size, size);
   }
 
-  const rand = mulberry32(20260711);
+  const rand = mulberry32(20260712);
 
-  // Field background with a faint vignette free, flat lab look.
-  ctx.fillStyle = "#eef0f1";
+  // Blue stained field.
+  ctx.fillStyle = "#2f6ec8";
   ctx.fillRect(0, 0, size, size);
 
-  // Goryaev grid lines.
+  // Faint Goryaev grid lines.
   const cells = 8;
   const step = size / cells;
-  ctx.strokeStyle = "#c9ced2";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(220, 230, 245, 0.22)";
+  ctx.lineWidth = 1.5;
   for (let i = 0; i <= cells; i++) {
     const p = Math.round(i * step) + 0.5;
     ctx.beginPath();
@@ -49,30 +50,28 @@ export function createSampleImage(): ImageData {
 
   const clamp = (v: number) => Math.max(24, Math.min(size - 24, v));
 
-  // Dead cells: solid blue blobs (Trypan Blue).
-  const deadCount = 18;
-  for (let i = 0; i < deadCount; i++) {
+  // Dead cells: darker blue blobs (absorbed Trypan Blue).
+  for (let i = 0; i < 5; i++) {
     const x = clamp(rand() * size);
     const y = clamp(rand() * size);
-    const r = 7 + rand() * 4;
+    const r = 7 + rand() * 3;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgb(${28 + rand() * 20}, ${52 + rand() * 24}, ${150 + rand() * 40})`;
+    ctx.fillStyle = `rgb(${16 + rand() * 12}, ${40 + rand() * 16}, ${96 + rand() * 24})`;
     ctx.fill();
   }
 
-  // Live cells: bright centre with a darker ring, the refractile look.
-  const liveCount = 46;
-  for (let i = 0; i < liveCount; i++) {
+  // Live cells: bright refractile spots, a light core with a brighter rim.
+  for (let i = 0; i < 48; i++) {
     const x = clamp(rand() * size);
     const y = clamp(rand() * size);
-    const r = 8 + rand() * 4;
+    const r = 7 + rand() * 3;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#f6f7f8";
+    ctx.fillStyle = `rgba(224, 236, 250, ${0.9 + rand() * 0.1})`;
     ctx.fill();
-    ctx.lineWidth = 2.8 + rand() * 1.3;
-    ctx.strokeStyle = `rgba(44, 46, 50, ${0.74 + rand() * 0.22})`;
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "rgba(245, 250, 255, 0.9)";
     ctx.stroke();
   }
 
