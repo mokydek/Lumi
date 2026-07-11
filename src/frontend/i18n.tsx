@@ -56,7 +56,7 @@ const en: Dict = {
     "Viability and concentration appear at once, with your dilution factor applied.",
 
   "math.eyebrow": "The math, transparent",
-  "math.title": "Exactly the numbers your protocol expects",
+  "math.title": "The numbers your protocol expects",
   "math.viability": "Viability",
   "math.viabilityFormula": "live / (live + dead) x 100",
   "math.viabilityNote": "The share of transparent cells across everything counted.",
@@ -69,7 +69,7 @@ const en: Dict = {
   "trust.body":
     "Computer vision is never perfect, so CellDrop never asks you to accept a black box. Every marker can be added, removed, or reclassified with a click. The counts and the math update the moment you touch the overlay.",
 
-  "cta.title": "Bring your next count down to one second",
+  "cta.title": "Cut your next count down to seconds",
 
   "illustration.alt": "Goryaev grid with detected live and dead cells",
 
@@ -244,9 +244,9 @@ const ru: Dict = {
   "how.capture.title": "Снимок",
   "how.capture.body":
     "Поднесите телефон к окуляру или загрузите фото с цифрового микроскопа.",
-  "how.detect.title": "Область",
+  "how.detect.title": "Распознавание",
   "how.detect.body":
-    "Движок находит сетку камеры Горяева и даёт подтвердить область подсчёта.",
+    "Алгоритм находит сетку камеры Горяева и даёт подтвердить область подсчёта.",
   "how.classify.title": "Классификация",
   "how.classify.body":
     "Прозрачные клетки считаются живыми. Окрашенные трипановым синим — мёртвыми.",
@@ -255,7 +255,7 @@ const ru: Dict = {
     "Жизнеспособность и концентрация появляются сразу, с учётом вашего фактора разведения.",
 
   "math.eyebrow": "Прозрачная математика",
-  "math.title": "Ровно те числа, что ждёт ваш протокол",
+  "math.title": "Те числа, что ждёт ваш протокол",
   "math.viability": "Жизнеспособность",
   "math.viabilityFormula": "живые / (живые + мёртвые) x 100",
   "math.viabilityNote": "Доля прозрачных клеток от всех подсчитанных.",
@@ -268,7 +268,7 @@ const ru: Dict = {
   "trust.body":
     "Компьютерное зрение не бывает идеальным, поэтому CellDrop не просит верить чёрному ящику. Любой маркер можно добавить, убрать или переназначить одним кликом. Счёт и расчёты обновляются в тот же миг.",
 
-  "cta.title": "Сократите следующий подсчёт до одной секунды",
+  "cta.title": "Сократите следующий подсчёт до секунд",
 
   "illustration.alt": "Сетка Горяева с распознанными живыми и мёртвыми клетками",
 
@@ -306,7 +306,7 @@ const ru: Dict = {
   "controls.erase": "Стереть",
   "controls.region": "Область",
   "controls.toolHint":
-    "Кликните по снимку, чтобы поставить маркер, Стереть — чтобы убрать, Область — чтобы рамкой ограничить авто-подсчёт. Клавиши L, D, E, R.",
+    "Кликните по снимку, чтобы поставить маркер, Стереть — чтобы убрать, Область — чтобы рамкой ограничить автоподсчёт. Клавиши L, D, E, R.",
   "controls.sensitivity": "Чувствительность",
   "controls.blueStrength": "Сила синего",
   "controls.liveSensitivity": "Чувствительность к живым",
@@ -355,7 +355,7 @@ const ru: Dict = {
   "diff.intro":
     "Мы не первый счётчик клеток. Мы самый простой бесплатный способ получить подсчёт живых и мёртвых клеток для камеры Горяева и проверить его самостоятельно.",
   "diff.t1.title": "Бесплатный подсчёт живых и мёртвых",
-  "diff.t1.body": "Жизнеспособность и концентрация без оплаты, без кредитов и без регистрации.",
+  "diff.t1.body": "Жизнеспособность и концентрация без оплаты, без списаний и без регистрации.",
   "diff.t2.title": "Создан для камеры Горяева",
   "diff.t2.body":
     "Подсчёт по квадратам и расчёт концентрации настроены под сетку, принятую в русскоязычных лабораториях.",
