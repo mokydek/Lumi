@@ -164,30 +164,24 @@ export function detectCells(
   const liveMask = new Uint8Array(pixelCount);
 
   // Luminance for every pixel (needed everywhere for the local averages).
+  let globalSum = 0;
   for (let i = 0; i < pixelCount; i++) {
     const offset = i * 4;
-    luminance[i] = data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
+    const value = data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114;
+    luminance[i] = value;
+    globalSum += value;
   }
+  // Image polarity. On a light field cells read darker than the background; on a
+  // dark or heavily stained (blue) field they read brighter. Picking one polarity
+  // per image avoids catching both a cell and its halo.
+  const globalMean = globalSum / pixelCount;
+  const brightField = globalMean >= 130;
 
   // Region of interest bounds. Classification only happens inside them.
   const x0 = roi ? Math.max(0, Math.floor(roi.x)) : 0;
   const y0 = roi ? Math.max(0, Math.floor(roi.y)) : 0;
   const x1 = roi ? Math.min(width, Math.floor(roi.x + roi.width)) : width;
   const y1 = roi ? Math.min(height, Math.floor(roi.y + roi.height)) : height;
-
-  // Dead mask: strongly blue pixels.
-  for (let y = y0; y < y1; y++) {
-    for (let x = x0; x < x1; x++) {
-      const i = y * width + x;
-      const offset = i * 4;
-      const r = data[offset];
-      const g = data[offset + 1];
-      const b = data[offset + 2];
-      if (b - (r + g) / 2 > params.blueThreshold && b > 55) {
-        deadMask[i] = 1;
-      }
-    }
-  }
 
   // Integral image of luminance for O(1) local window averages.
   const stride = width + 1;
@@ -203,11 +197,16 @@ export function detectCells(
   const radius = Math.min(40, Math.max(10, Math.round(width / 45)));
   const contrast = Math.max(3, 48 - params.liveSensitivity);
 
-  // Live mask: pixels clearly darker than their local neighbourhood, not blue.
+  // Classify each pixel by how it stands out from its local neighbourhood.
+  // This copes with both common image polarities:
+  //   bright field  -> live cells show as darker rims, dead cells as dark blue blobs
+  //   stained field -> the whole photo is blue; live cells read brighter than the
+  //                    field, dead cells read as darker, more saturated blue spots
+  // A dead cell is blue and darker than its surroundings. Anything else that
+  // stands out from the local average, brighter or darker, is a live candidate.
   for (let y = y0; y < y1; y++) {
     for (let x = x0; x < x1; x++) {
       const i = y * width + x;
-      if (deadMask[i] === 1) continue;
 
       const ax = Math.max(0, x - radius);
       const ay = Math.max(0, y - radius);
@@ -220,8 +219,25 @@ export function detectCells(
         integral[(by + 1) * stride + ax] +
         integral[ay * stride + ax];
       const localMean = sum / windowArea;
+      const value = luminance[i];
 
-      if (luminance[i] < localMean - contrast) {
+      const offset = i * 4;
+      const r = data[offset];
+      const g = data[offset + 1];
+      const b = data[offset + 2];
+      const blueness = b - (r + g) / 2;
+
+      // Live cells stand out in the direction set by the image polarity.
+      const liveHit = brightField
+        ? value < localMean - contrast
+        : value > localMean + contrast;
+
+      // A dead cell is blue and clearly darker than the overall field. Using the
+      // whole image background rather than the local mean avoids flagging the dim
+      // halo that a bright live cell casts on its own neighbourhood.
+      if (blueness > params.blueThreshold && b > 55 && value < globalMean - Math.max(12, contrast * 0.6)) {
+        deadMask[i] = 1;
+      } else if (liveHit) {
         liveMask[i] = 1;
       }
     }
