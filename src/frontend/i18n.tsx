@@ -24,11 +24,13 @@ const en: Dict = {
 
   "footer.tagline": "Cell viability counting for the Goryaev chamber. Built for the lab bench.",
 
-  "hero.eyebrow": "Cell viability, automated",
-  "hero.title": "Count live and dead cells in one second, not fifteen minutes",
+  "hero.eyebrow": "Free viability counter for the Goryaev chamber",
+  "hero.title": "Count live and dead cells from one photo",
   "hero.sub":
-    "CellDrop reads a photo of your Goryaev chamber, separates live from dead by Trypan Blue, and returns viability and concentration instantly. You stay in control with a manual correction layer built for the lab.",
+    "Upload one frame of your Goryaev chamber and read viability and concentration in seconds. Then check every marked cell yourself. Free, in Russian and English.",
+  "hero.primary": "Upload a photo",
   "hero.seeHow": "See how it works",
+  "hero.trust": "A result in seconds and an easy check. Not a perfect answer in one click.",
   "hero.stat1": "faster than a clicker",
   "hero.stat2": "per sample",
   "hero.stat3": "editable by hand",
@@ -88,8 +90,8 @@ const en: Dict = {
 
   "results.live": "Live",
   "results.dead": "Dead",
-  "results.viability": "Viability",
-  "results.concentration": "Concentration",
+  "results.viability": "Viability estimate",
+  "results.concentration": "Concentration estimate",
   "results.concentrationUnit": "cells per mL, all counted",
   "results.total": "Total",
   "results.perSquare": "Per square",
@@ -120,6 +122,61 @@ const en: Dict = {
   "legend.hide": "Hide markers",
   "legend.show": "Show markers",
   "legend.undo": "Undo",
+
+  "ruo.results":
+    "Research use only. CellDrop is a counting aid, not a medical device. Do not use these results for clinical, diagnostic, embryo selection or cell therapy dosing decisions. Check the overlay yourself.",
+
+  "analyzer.limits":
+    "Check before you trust the number. Weak focus, glare, debris in the field and clumped cells all lower accuracy, and so do low cell counts. Compare the markers against the overlay and correct any the tool missed before you record a result.",
+  "analyzer.verify":
+    "Verify every count. Each marker sits on the cell it counted, so you see exactly what the tool saw. The final number is the one you confirm.",
+  "analyzer.lowCount":
+    "Low count. You have counted {count} cells. From counting statistics alone the expected spread is about {cv} percent. Aim for at least 100 cells across your squares before you rely on this number.",
+  "analyzer.countOk":
+    "Count above 100 cells. Random counting error is near its floor of about 10 percent.",
+
+  "export.caption": "Saved and exported results are for research use only.",
+  "export.csvHeader": "CellDrop research use only. Not for clinical or diagnostic use.",
+  "save.privacy": "Saving stores your numbers only, not the photo.",
+
+  "dropzone.privacy":
+    "Your image is analysed in your browser and is never uploaded. It stays on your device, with no account.",
+  "dropzone.captureTitle": "For the clearest count",
+  "dropzone.capture1":
+    "Use a digital microscope camera. A phone held to the eyepiece adds glare and uneven focus.",
+  "dropzone.capture2": "Focus until the cell edges look sharp.",
+  "dropzone.capture3": "Light the field evenly and avoid glare.",
+  "dropzone.capture4":
+    "Fill the frame with the grid so cells stay large and easy to separate.",
+  "dropzone.captureMoreTrigger": "How to get a good frame",
+  "dropzone.captureMoreBody":
+    "A digital microscope camera gives the most stable image. If you must use a phone, rest it flat on the eyepiece, centre the grid, and hold still. Keep all cells in one focal plane, wipe the lens, and shoot at full zoom without cropping afterward.",
+
+  "diff.heading": "What CellDrop does well",
+  "diff.intro":
+    "We are not the first cell counter. We are the simplest free way to get live and dead counts for the Goryaev chamber and to check them yourself.",
+  "diff.t1.title": "Free live and dead counting",
+  "diff.t1.body": "Viability and concentration at no cost, with no credits and no sign up.",
+  "diff.t2.title": "Built for the Goryaev chamber",
+  "diff.t2.body":
+    "Square counting and concentration math tuned for the grid used across Russian speaking labs.",
+  "diff.t3.title": "Russian and English",
+  "diff.t3.body": "The full interface and every hint are available in both languages.",
+  "diff.t4.title": "Your images stay private",
+  "diff.t4.body": "Counting runs in your browser. Photos are never sent to a server.",
+  "diff.t5.title": "An overlay you can verify",
+  "diff.t5.body":
+    "Every counted cell is marked on the photo so you can confirm the number yourself.",
+  "diff.t6.title": "Correct it by hand",
+  "diff.t6.body": "Add, remove or reclassify any marker before you trust the result.",
+
+  "footer.ruo":
+    "CellDrop is a research tool. All results are for research use only and must not guide clinical or diagnostic decisions. Photos are processed in your browser and never uploaded.",
+  "footer.legalLink": "Research use and privacy",
+
+  "legal.title": "Research use and privacy",
+  "legal.body":
+    "CellDrop is intended for research use only. It gives a fast estimate of live and dead cell counts, viability and concentration from a Goryaev chamber photo, together with a transparent overlay you can check and correct. CellDrop is not a medical device. Do not use its results for clinical or diagnostic decisions, for selecting embryos, or for dosing cell therapy. A qualified specialist is responsible for any decision. Your photo is processed entirely in your browser and is never uploaded to a server. If you choose to save a result, only the numbers are stored in your account, not the image. Accuracy falls with clumped cells, debris, poor focus and low cell counts. For a reliable figure, count at least 100 cells across squares and verify the overlay by eye.",
 
   "auth.signinTitle": "Sign in",
   "auth.signinSub": "Welcome back. Continue to your analyses.",
@@ -166,11 +223,13 @@ const ru: Dict = {
   "footer.tagline":
     "Подсчёт жизнеспособности клеток в камере Горяева. Сделано для лабораторного стола.",
 
-  "hero.eyebrow": "Жизнеспособность клеток, автоматически",
-  "hero.title": "Считайте живые и мёртвые клетки за секунду, а не за пятнадцать минут",
+  "hero.eyebrow": "Бесплатный счётчик жизнеспособности для камеры Горяева",
+  "hero.title": "Подсчёт живых и мёртвых клеток по одному фото",
   "hero.sub":
-    "CellDrop читает фото камеры Горяева, отделяет живые клетки от мёртвых по красителю трипановый синий и мгновенно выдаёт жизнеспособность и концентрацию. Контроль остаётся за вами: ручная правка сделана для лаборатории.",
+    "Загрузите один кадр камеры Горяева и узнайте жизнеспособность и концентрацию за секунды. Затем проверьте каждую отмеченную клетку сами. Бесплатно, на русском и английском.",
+  "hero.primary": "Загрузить фото",
   "hero.seeHow": "Как это работает",
+  "hero.trust": "Результат за секунды и простая проверка. Не идеальный ответ в один клик.",
   "hero.stat1": "быстрее счётчика",
   "hero.stat2": "на образец",
   "hero.stat3": "правится вручную",
@@ -230,8 +289,8 @@ const ru: Dict = {
 
   "results.live": "Живые",
   "results.dead": "Мёртвые",
-  "results.viability": "Жизнеспособность",
-  "results.concentration": "Концентрация",
+  "results.viability": "Оценка жизнеспособности",
+  "results.concentration": "Оценка концентрации",
   "results.concentrationUnit": "клеток на мл, всего",
   "results.total": "Всего",
   "results.perSquare": "На квадрат",
@@ -262,6 +321,60 @@ const ru: Dict = {
   "legend.hide": "Скрыть разметку",
   "legend.show": "Показать разметку",
   "legend.undo": "Отменить",
+
+  "ruo.results":
+    "Только для исследовательских целей. CellDrop — вспомогательный инструмент подсчёта, а не медицинское изделие. Не используйте эти результаты для клинических, диагностических решений, отбора эмбрионов или расчёта дозы клеточной терапии. Проверьте разметку самостоятельно.",
+
+  "analyzer.limits":
+    "Проверьте, прежде чем доверять числу. Слабый фокус, блики, мусор в поле и слипшиеся клетки снижают точность, как и малое число клеток. Сравните маркеры с разметкой и поправьте те, что инструмент пропустил, прежде чем записывать результат.",
+  "analyzer.verify":
+    "Проверяйте каждый подсчёт. Каждый маркер стоит на той клетке, которую посчитал, поэтому вы видите ровно то, что увидел инструмент. Итоговое число — то, которое подтвердили вы.",
+  "analyzer.lowCount":
+    "Мало клеток. Подсчитано клеток: {count}. Только по статистике подсчёта ожидаемый разброс составляет около {cv}%. Наберите не менее 100 клеток по квадратам, прежде чем полагаться на это число.",
+  "analyzer.countOk":
+    "Подсчитано более 100 клеток. Случайная погрешность подсчёта близка к своему пределу около 10 процентов.",
+
+  "export.caption": "Сохранённые и экспортированные результаты предназначены только для научных целей.",
+  "export.csvHeader":
+    "CellDrop. Только для научных целей. Не для клинического или диагностического применения.",
+  "save.privacy": "При сохранении хранятся только ваши значения, фото не сохраняется.",
+
+  "dropzone.privacy":
+    "Ваше изображение анализируется в браузере и никогда не загружается. Оно остаётся на вашем устройстве, без аккаунта.",
+  "dropzone.captureTitle": "Для самого чёткого подсчёта",
+  "dropzone.capture1":
+    "Снимайте камерой цифрового микроскопа. Телефон у окуляра добавляет блики и неравномерный фокус.",
+  "dropzone.capture2": "Наведите резкость, пока края клеток не станут чёткими.",
+  "dropzone.capture3": "Освещайте поле равномерно и избегайте бликов.",
+  "dropzone.capture4": "Заполните кадр сеткой, чтобы клетки оставались крупными и легко разделялись.",
+  "dropzone.captureMoreTrigger": "Как получить хороший кадр",
+  "dropzone.captureMoreBody":
+    "Камера цифрового микроскопа даёт самое стабильное изображение. Если используете телефон, положите его ровно на окуляр, отцентрируйте сетку и держите неподвижно. Снимайте все клетки в одной фокальной плоскости, протрите объектив и делайте фото на полном увеличении без последующей обрезки.",
+
+  "diff.heading": "Что CellDrop делает хорошо",
+  "diff.intro":
+    "Мы не первый счётчик клеток. Мы самый простой бесплатный способ получить подсчёт живых и мёртвых клеток для камеры Горяева и проверить его самостоятельно.",
+  "diff.t1.title": "Бесплатный подсчёт живых и мёртвых",
+  "diff.t1.body": "Жизнеспособность и концентрация без оплаты, без кредитов и без регистрации.",
+  "diff.t2.title": "Создан для камеры Горяева",
+  "diff.t2.body":
+    "Подсчёт по квадратам и расчёт концентрации настроены под сетку, принятую в русскоязычных лабораториях.",
+  "diff.t3.title": "Русский и английский",
+  "diff.t3.body": "Весь интерфейс и все подсказки доступны на обоих языках.",
+  "diff.t4.title": "Ваши изображения приватны",
+  "diff.t4.body": "Подсчёт идёт в вашем браузере. Фото никогда не отправляются на сервер.",
+  "diff.t5.title": "Разметка, которую можно проверить",
+  "diff.t5.body": "Каждая учтённая клетка отмечена на фото, чтобы вы могли подтвердить результат сами.",
+  "diff.t6.title": "Ручная коррекция",
+  "diff.t6.body": "Добавляйте, удаляйте или меняйте класс любой метки, прежде чем доверять результату.",
+
+  "footer.ruo":
+    "CellDrop — исследовательский инструмент. Все результаты предназначены только для научных целей и не могут служить основанием для клинических или диагностических решений. Фотографии обрабатываются в вашем браузере и не загружаются на сервер.",
+  "footer.legalLink": "Научное применение и конфиденциальность",
+
+  "legal.title": "Научное применение и конфиденциальность",
+  "legal.body":
+    "CellDrop предназначен только для научных целей. Он даёт быструю оценку числа живых и мёртвых клеток, жизнеспособности и концентрации по фотографии камеры Горяева вместе с наглядной разметкой, которую вы можете проверить и исправить. CellDrop не является медицинским изделием. Не используйте его результаты для клинических или диагностических решений, для отбора эмбрионов или для расчёта дозы клеточной терапии. Ответственность за любое решение несёт квалифицированный специалист. Ваше фото обрабатывается полностью в вашем браузере и никогда не загружается на сервер. Если вы решите сохранить результат, в вашем аккаунте хранятся только значения, но не изображение. Точность снижается при слипшихся клетках, посторонних частицах, плохом фокусе и малом числе клеток. Для надёжного результата подсчитайте не менее 100 клеток по квадратам и проверьте разметку визуально.",
 
   "auth.signinTitle": "Вход",
   "auth.signinSub": "С возвращением. Продолжайте к своим анализам.",

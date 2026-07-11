@@ -62,6 +62,22 @@ export function ImageDropzone({ onImage, onSample }: Props) {
         </button>
       </div>
 
+      <p className="dropzone-privacy muted">{t("dropzone.privacy")}</p>
+
+      <div className="capture-tips">
+        <span className="capture-title">{t("dropzone.captureTitle")}</span>
+        <ul className="capture-list">
+          <li>{t("dropzone.capture1")}</li>
+          <li>{t("dropzone.capture2")}</li>
+          <li>{t("dropzone.capture3")}</li>
+          <li>{t("dropzone.capture4")}</li>
+        </ul>
+        <details className="capture-more">
+          <summary>{t("dropzone.captureMoreTrigger")}</summary>
+          <p>{t("dropzone.captureMoreBody")}</p>
+        </details>
+      </div>
+
       <input
         ref={fileInput}
         type="file"

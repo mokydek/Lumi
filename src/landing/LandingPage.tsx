@@ -24,6 +24,15 @@ export default function LandingPage() {
     { icon: Calculator, title: t("how.compute.title"), body: t("how.compute.body") },
   ];
 
+  const diffs = [
+    { title: t("diff.t1.title"), body: t("diff.t1.body") },
+    { title: t("diff.t2.title"), body: t("diff.t2.body") },
+    { title: t("diff.t3.title"), body: t("diff.t3.body") },
+    { title: t("diff.t4.title"), body: t("diff.t4.body") },
+    { title: t("diff.t5.title"), body: t("diff.t5.body") },
+    { title: t("diff.t6.title"), body: t("diff.t6.body") },
+  ];
+
   return (
     <div className="page">
       <Header />
@@ -37,13 +46,15 @@ export default function LandingPage() {
               <p className="hero-sub">{t("hero.sub")}</p>
               <div className="hero-actions">
                 <Link to="/app" className="btn btn-primary">
-                  {t("nav.openAnalyzer")}
+                  {t("hero.primary")}
                   <ArrowRight size={16} />
                 </Link>
                 <a href="#how" className="btn btn-ghost">
                   {t("hero.seeHow")}
                 </a>
               </div>
+
+              <p className="hero-trust">{t("hero.trust")}</p>
 
               <div className="hero-stats">
                 <div className="hero-stat">
@@ -63,6 +74,24 @@ export default function LandingPage() {
 
             <div className="hero-visual">
               <ChamberIllustration />
+            </div>
+          </div>
+        </section>
+
+        <section className="section section-alt" id="why">
+          <div className="container">
+            <div className="section-head">
+              <span className="eyebrow">{t("diff.heading")}</span>
+              <p className="diff-intro">{t("diff.intro")}</p>
+            </div>
+            <div className="diff-grid">
+              {diffs.map((d, index) => (
+                <div className="diff-tile" key={d.title}>
+                  <span className="diff-index mono">0{index + 1}</span>
+                  <h3 className="diff-title">{d.title}</h3>
+                  <p className="diff-body">{d.body}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>

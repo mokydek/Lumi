@@ -30,8 +30,16 @@ export function ResultsPanel({
   const sci = formatScientific(result.concentration);
   const liveSci = formatScientific(result.liveConcentration);
 
+  const total = result.total;
+  const cv = total > 0 ? Math.round(100 / Math.sqrt(total)) : 0;
+  const lowCountText = t("analyzer.lowCount")
+    .replace("{count}", String(total))
+    .replace("{cv}", String(cv));
+
   return (
     <div className="results">
+      <p className="results-verify">{t("analyzer.verify")}</p>
+
       <div className="results-counts">
         <div className="count-tile count-live">
           <span className="count-dot dot" />
@@ -85,6 +93,16 @@ export function ResultsPanel({
         </div>
       </div>
 
+      {total > 0 ? (
+        total < 100 ? (
+          <div className="reliability reliability-low">{lowCountText}</div>
+        ) : (
+          <div className="reliability reliability-ok">{t("analyzer.countOk")}</div>
+        )
+      ) : null}
+
+      <p className="results-ruo">{t("ruo.results")}</p>
+
       <div className="results-actions">
         {canSave ? (
           <button
@@ -110,6 +128,9 @@ export function ResultsPanel({
           {t("results.export")}
         </button>
       </div>
+
+      <p className="results-caption muted">{t("export.caption")}</p>
+      {canSave ? <p className="results-caption muted">{t("save.privacy")}</p> : null}
 
       {saveError ? <div className="notice notice-error">{saveError}</div> : null}
     </div>

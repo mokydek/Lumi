@@ -320,6 +320,7 @@ export default function AnalyzerPage() {
 
   const handleExport = () => {
     const rows = [
+      t("export.csvHeader"),
       "metric,value",
       `live,${live}`,
       `dead,${dead}`,
@@ -397,6 +398,7 @@ export default function AnalyzerPage() {
             </section>
 
             <aside className="analyzer-side">
+              <p className="limits-note">{t("analyzer.limits")}</p>
               <div className="card">
                 <ResultsPanel
                   live={live}

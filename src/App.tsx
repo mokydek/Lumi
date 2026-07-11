@@ -9,6 +9,7 @@ const AnalyzerPage = lazy(() => import("./frontend/pages/AnalyzerPage"));
 const LoginPage = lazy(() => import("./frontend/pages/LoginPage"));
 const SignupPage = lazy(() => import("./frontend/pages/SignupPage"));
 const HistoryPage = lazy(() => import("./frontend/pages/HistoryPage"));
+const LegalPage = lazy(() => import("./frontend/pages/LegalPage"));
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/app" element={<AnalyzerPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/legal" element={<LegalPage />} />
         <Route
           path="/history"
           element={
