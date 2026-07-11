@@ -10,7 +10,8 @@ even when the computer vision is imperfect.
 ## What it does
 
 - Detects live and dead cells from a single photo, fully in the browser.
-- Manual correction layer: add, remove, or reclassify any marker with a click.
+- Manual correction layer: add, remove, or reclassify any marker with a click, with undo.
+- Show or hide the overlay to compare the count against the raw photo.
 - Computes viability and concentration with your dilution factor and squares counted.
 - Region of interest tool to limit automatic detection to the grid area.
 - Optional accounts and saved history through Supabase.

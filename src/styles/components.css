@@ -599,9 +599,20 @@
   flex-wrap: wrap;
 }
 
+.canvas-tools {
+  display: inline-flex;
+  gap: 6px;
+}
+
 .canvas-meta {
   margin-left: auto;
   font-size: 12px;
+}
+
+.reset-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 2px;
 }
 
 .analyzer-side {

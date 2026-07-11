@@ -1,4 +1,12 @@
-import { CirclePlus, CircleDot, Eraser, Crop, RotateCcw, ImagePlus } from "lucide-react";
+import {
+  CirclePlus,
+  CircleDot,
+  Eraser,
+  Crop,
+  RotateCcw,
+  RefreshCcw,
+  ImagePlus,
+} from "lucide-react";
 import type { DetectParams } from "../lib/counting";
 import { Field, Input } from "../../shared/ui";
 import { useI18n } from "../i18n";
@@ -17,6 +25,7 @@ interface Props {
   onClearRoi: () => void;
   onClear: () => void;
   onNewImage: () => void;
+  onResetSettings: () => void;
 }
 
 const toolMeta: { id: Tool; icon: typeof CirclePlus; labelKey: string }[] = [
@@ -39,6 +48,7 @@ export function Controls({
   onClearRoi,
   onClear,
   onNewImage,
+  onResetSettings,
 }: Props) {
   const { t } = useI18n();
   const update = (patch: Partial<DetectParams>) => onParamsChange({ ...params, ...patch });
@@ -110,6 +120,11 @@ export function Controls({
             onChange={(e) => update({ cellSize: Number(e.target.value) })}
           />
         </label>
+
+        <button className="btn btn-ghost btn-sm reset-btn" onClick={onResetSettings}>
+          <RefreshCcw size={15} />
+          {t("controls.resetSettings")}
+        </button>
       </div>
 
       <hr className="divider" />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { Undo2, Eye, EyeOff } from "lucide-react";
 import { Header } from "../../shared/Header";
 import { useAuth } from "../../backend/auth";
 import { saveAnalysis } from "../../backend/analyses";
@@ -41,6 +42,7 @@ export default function AnalyzerPage() {
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const manualIdRef = useRef(0);
   const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const historyRef = useRef<Marker[][]>([]);
 
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [dims, setDims] = useState<Size | null>(null);
@@ -53,6 +55,7 @@ export default function AnalyzerPage() {
   const [squares, setSquares] = useState(1);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showMarkers, setShowMarkers] = useState(true);
 
   const live = useMemo(() => markers.filter((m) => m.type === "live").length, [markers]);
   const dead = useMemo(() => markers.filter((m) => m.type === "dead").length, [markers]);
@@ -65,6 +68,7 @@ export default function AnalyzerPage() {
   const loadImage = (data: ImageData, size: Size) => {
     manualIdRef.current = 0;
     dragRef.current = null;
+    historyRef.current = [];
     setSaveState("idle");
     setSaveError(null);
     setMarkers([]);
@@ -143,23 +147,25 @@ export default function AnalyzerPage() {
       ctx.strokeRect(activeRoi.x, activeRoi.y, activeRoi.width, activeRoi.height);
     }
 
-    const r = Math.max(6, Math.round(dims.width / 110));
-    for (const m of markers) {
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, r, 0, Math.PI * 2);
-      if (m.type === "live") {
-        ctx.strokeStyle = "#0b8a4b";
-        ctx.lineWidth = Math.max(2, r * 0.4);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = "rgba(37, 99, 235, 0.82)";
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+    if (showMarkers) {
+      const r = Math.max(6, Math.round(dims.width / 110));
+      for (const m of markers) {
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, r, 0, Math.PI * 2);
+        if (m.type === "live") {
+          ctx.strokeStyle = "#0b8a4b";
+          ctx.lineWidth = Math.max(2, r * 0.4);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = "rgba(37, 99, 235, 0.82)";
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
       }
     }
-  }, [markers, dims, roi, draft]);
+  }, [markers, dims, roi, draft, showMarkers]);
 
   // Keyboard shortcuts for the marker tools.
   useEffect(() => {
@@ -168,6 +174,12 @@ export default function AnalyzerPage() {
       const target = event.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       const key = event.key.toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && key === "z") {
+        event.preventDefault();
+        undo();
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (key === "l") setTool("live");
       else if (key === "d") setTool("dead");
       else if (key === "e") setTool("erase");
@@ -187,6 +199,16 @@ export default function AnalyzerPage() {
     };
   };
 
+  const pushHistory = () => {
+    historyRef.current.push(markers);
+    if (historyRef.current.length > 40) historyRef.current.shift();
+  };
+
+  const undo = () => {
+    const prev = historyRef.current.pop();
+    if (prev) setMarkers(prev);
+  };
+
   const applyMarkerAt = (x: number, y: number) => {
     if (tool === "erase") {
       const radius = Math.max(10, (dims?.width ?? 100) / 70);
@@ -199,7 +221,10 @@ export default function AnalyzerPage() {
           bestId = m.id;
         }
       }
-      if (bestId) setMarkers((prev) => prev.filter((m) => m.id !== bestId));
+      if (bestId) {
+        pushHistory();
+        setMarkers((prev) => prev.filter((m) => m.id !== bestId));
+      }
       return;
     }
     if (tool === "live" || tool === "dead") {
@@ -210,6 +235,7 @@ export default function AnalyzerPage() {
         type: tool,
         source: "manual",
       };
+      pushHistory();
       setMarkers((prev) => [...prev, marker]);
     }
   };
@@ -253,10 +279,16 @@ export default function AnalyzerPage() {
     if (tool === "region") setDraft(null);
   };
 
-  const handleClear = () => setMarkers([]);
+  const handleClear = () => {
+    if (markers.length === 0) return;
+    pushHistory();
+    setMarkers([]);
+  };
   const handleClearRoi = () => setRoi(null);
+  const handleResetSettings = () => setParams(DEFAULT_PARAMS);
 
   const handleNewImage = () => {
+    historyRef.current = [];
     setImageData(null);
     setDims(null);
     setMarkers([]);
@@ -344,6 +376,20 @@ export default function AnalyzerPage() {
                   {t("legend.dead")}
                 </span>
                 {roi ? <span className="badge">{t("legend.region")}</span> : null}
+                <div className="canvas-tools">
+                  <button className="btn btn-ghost btn-sm" onClick={undo}>
+                    <Undo2 size={14} />
+                    {t("legend.undo")}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowMarkers((v) => !v)}
+                    aria-pressed={!showMarkers}
+                  >
+                    {showMarkers ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showMarkers ? t("legend.hide") : t("legend.show")}
+                  </button>
+                </div>
                 <span className="canvas-meta mono muted">
                   {dims.width} x {dims.height}
                 </span>
@@ -377,6 +423,7 @@ export default function AnalyzerPage() {
                   onClearRoi={handleClearRoi}
                   onClear={handleClear}
                   onNewImage={handleNewImage}
+                  onResetSettings={handleResetSettings}
                 />
               </div>
             </aside>

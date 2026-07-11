@@ -116,6 +116,10 @@ const en: Dict = {
   "controls.clearMarkers": "Clear markers",
   "controls.newImage": "New image",
   "controls.resetRegion": "Reset region to full image",
+  "controls.resetSettings": "Reset settings",
+  "legend.hide": "Hide markers",
+  "legend.show": "Show markers",
+  "legend.undo": "Undo",
 
   "auth.signinTitle": "Sign in",
   "auth.signinSub": "Welcome back. Continue to your analyses.",
@@ -254,6 +258,10 @@ const ru: Dict = {
   "controls.clearMarkers": "Сбросить маркеры",
   "controls.newImage": "Новое фото",
   "controls.resetRegion": "Сбросить область на весь кадр",
+  "controls.resetSettings": "Сбросить настройки",
+  "legend.hide": "Скрыть разметку",
+  "legend.show": "Показать разметку",
+  "legend.undo": "Отменить",
 
   "auth.signinTitle": "Вход",
   "auth.signinSub": "С возвращением. Продолжайте к своим анализам.",
